@@ -28,6 +28,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageReleaseNotes>Initial version, validates application settings</PackageReleaseNotes>
     <PackageId>ApplicationSettings</PackageId>
+    <Version>1.0.0.2</Version>
   </PropertyGroup>
 
 

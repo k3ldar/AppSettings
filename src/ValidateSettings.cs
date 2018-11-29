@@ -43,7 +43,8 @@ namespace AppSettings
 
         #region Public Static Methods
 
-        public static T Validate(T settings, ISettingOverride settingOverride, ISettingError settingError)
+        public static T Validate(T settings, ISettingOverride settingOverride, 
+            ISettingError settingError)
         {
             SettingOverride = settingOverride ?? throw new ArgumentNullException(nameof(settingOverride));
             SettingError = settingError ?? throw new ArgumentNullException(nameof(settingError));
@@ -70,7 +71,7 @@ namespace AppSettings
             if (settings == null)
                 throw new ArgumentNullException(nameof(settings));
 
-            ValidateAllSettings(settings.GetType());
+            ValidateAllSettings(settings.GetType(), settings);
 
             return (settings);
         }
@@ -84,20 +85,32 @@ namespace AppSettings
         /// </summary>
         /// <param name="path"></param>
         /// <param name="classType"></param>
-        private static void ValidateAllSettings(in Type classType)
+        private static void ValidateAllSettings(in Type classType, in T settings)
         {
             if (classType == null)
                 throw new ArgumentNullException(nameof(classType));
 
-            foreach (PropertyInfo propertyInfo in classType.GetProperties(BindingFlags.NonPublic | 
+            foreach (PropertyInfo propertyInfo in classType.GetProperties(
                 BindingFlags.Public | BindingFlags.Static))
             {
-                ValidateSetting(propertyInfo);
+                bool isDefault = propertyInfo.GetValue(propertyInfo) == null ||
+                    propertyInfo.GetValue(propertyInfo).Equals(GetDefault(propertyInfo.PropertyType));
+
+                ValidateSetting(propertyInfo, isDefault, null);
+            }
+
+            foreach (PropertyInfo propertyInfo in classType.GetProperties(
+                BindingFlags.Public | BindingFlags.Instance))
+            {
+                bool isDefault = propertyInfo.GetValue(settings) == null ||
+                    propertyInfo.GetValue(settings).Equals(GetDefault(propertyInfo.PropertyType));
+
+                ValidateSetting(propertyInfo, isDefault, settings);
             }
 
             foreach (Type subClass in classType.GetNestedTypes())
             {
-                ValidateAllSettings(subClass);
+                ValidateAllSettings(subClass, settings);
             }
 
 
@@ -117,7 +130,7 @@ namespace AppSettings
         /// <param name="keyName"></param>
         /// <param name="propertyValue"></param>
         /// <returns></returns>
-        private static void ValidateSetting (in PropertyInfo propertyInfo)
+        private static void ValidateSetting (in PropertyInfo propertyInfo, bool isDefault, object instance)
         {
             if (propertyInfo == null)
                 throw new ArgumentNullException(nameof(propertyInfo));
@@ -130,7 +143,7 @@ namespace AppSettings
             {
                 if (SettingOverride.OverrideSettingValue(propertyInfo.Name, ref propertyValue))
                 {
-                    propertyInfo.SetValue(propertyInfo, propertyValue);
+                    propertyInfo.SetValue(instance == null ? propertyInfo : instance, propertyValue);
                     ValidateSettingValues(propertyInfo, propertyValue, false);
 
                     return;
@@ -138,8 +151,7 @@ namespace AppSettings
             }
             
             // is the property the default value and can the property have a default value assigned??????
-            if (propertyInfo.GetValue(propertyInfo) == null ||
-                propertyInfo.GetValue(propertyInfo).Equals(GetDefault(propertyInfo.PropertyType)))
+            if (isDefault)
             {
                 foreach (CustomAttributeData attribute in propertyInfo.CustomAttributes)
                 {
@@ -148,6 +160,8 @@ namespace AppSettings
                         if (attribute.ConstructorArguments[0].Value.GetType() == propertyInfo.PropertyType)
                         {
                             ValidateSettingValues(propertyInfo, attribute.ConstructorArguments[0].Value, true);
+                            propertyInfo.SetValue(instance == null ? propertyInfo : instance, 
+                                attribute.ConstructorArguments[0].Value);
                             return;
                         }
                         else
@@ -169,7 +183,7 @@ namespace AppSettings
             }
 
             // is the property a string, is it empty, is it allowed to be empty?
-            if (propertyInfo.PropertyType.FullName == "System.String")
+            if (isDefault && propertyInfo.PropertyType.FullName == "System.String")
             {
                 SettingStringAttribute stringSetting = (SettingStringAttribute)propertyInfo.GetCustomAttribute(
                     typeof(SettingStringAttribute));
@@ -180,20 +194,15 @@ namespace AppSettings
                 }
             }
 
-            ValidateSettingValues(propertyInfo, propertyInfo.GetValue(propertyInfo), false);
-
-            // if we don't have a value, and the value doesn't have a setting default attribute, or optional attribute, 
-            // report the error
-            ReportError(propertyInfo.Name, $"Does not have a value");
-
-            return;
+            ValidateSettingValues(propertyInfo, 
+                propertyInfo.GetValue(instance == null ? propertyInfo : instance, null), false);
         }
 
         private static void ReportError(in string propertyName, string error)
         {
             if (SettingError != null)
                 SettingError.SettingError(propertyName, error);
-            else
+            else if (!error.Equals("Value is optional"))
                 throw new SettingException(propertyName, error);
         }
 
