@@ -24,9 +24,11 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 using System;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Reflection;
 
 namespace AppSettings
@@ -229,6 +231,10 @@ namespace AppSettings
             ValidateUri(propInfo, propValue, isDefault);
             ValidateValueString(propInfo, propValue, isDefault);
             ValidateRange(propInfo, propValue, isDefault);
+            ValidateDelimited(propInfo, propValue, isDefault);
+            ValidateNVPair(propInfo, propValue, isDefault);
+            ValidateHttpResponse(propInfo, propValue, isDefault);
+            ValidateRegex(propInfo, propValue, isDefault);
         }
 
         #region Attribute Validation Methods
@@ -455,6 +461,124 @@ namespace AppSettings
                     if (propVal.Length > stringSetting.MaxLength)
                         ReportError(propInfo.Name, "Maximum length can not be longer than " +
                             $"{stringSetting.MaxLength} characters long, is currently {propVal.Length} characters");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validates a string is delimited
+        /// </summary>
+        /// <param name="propInfo"></param>
+        /// <param name="propValue"></param>
+        /// <param name="isDefault"></param>
+        private static void ValidateDelimited(in PropertyInfo propInfo, in object propValue,
+            in bool isDefault)
+        {
+            if (propInfo.PropertyType.FullName == "System.String")
+            {
+                SettingDelimitedStringAttribute delimitedSetting = (SettingDelimitedStringAttribute)propInfo.GetCustomAttribute(
+                    typeof(SettingDelimitedStringAttribute));
+
+                if (delimitedSetting != null)
+                {
+                    string propVal = propValue.ToString();
+
+                    string[] items = propVal.Split(new char[] { delimitedSetting.Delimiter }, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (items.Length < delimitedSetting.MinimumItems)
+                        ReportError(propInfo.Name, $"Delimited string must contain at least {delimitedSetting.MinimumItems} items");
+
+                    if (items.Length > delimitedSetting.MaximumItems)
+                        ReportError(propInfo.Name, $"Delimited string can only contain {delimitedSetting.MaximumItems} items");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validates a string is a name value pair
+        /// </summary>
+        /// <param name="propInfo"></param>
+        /// <param name="propValue"></param>
+        /// <param name="isDefault"></param>
+        private static void ValidateNVPair(in PropertyInfo propInfo, in object propValue,
+            in bool isDefault)
+        {
+            if (propInfo.PropertyType.FullName == "System.String")
+            {
+                SettingNameValuePairAttribute nvpSetting = (SettingNameValuePairAttribute)propInfo.GetCustomAttribute(
+                    typeof(SettingNameValuePairAttribute));
+
+                if (nvpSetting != null)
+                {
+                    NameValueCollection nameValueCollection = new NameValueCollection();
+
+                    string[] items = propValue.ToString().Split(new char[] { nvpSetting.Delimiter }, StringSplitOptions.RemoveEmptyEntries);
+
+                    foreach (string s in items)
+                    {
+                        string[] parts = s.Split('=');
+
+                        if (parts.Length != 2)
+                            ReportError(propInfo.Name, $"'{s}' is not valid for a name value part");
+
+                        nameValueCollection.Add(parts[0], parts[1]);
+                    }
+
+                    if (nameValueCollection.Count < nvpSetting.MinimumItems)
+                        ReportError(propInfo.Name, $"Name value pair string must contain at least {nvpSetting.MinimumItems} items");
+
+                    if (nameValueCollection.Count > nvpSetting.MaximumItems)
+                        ReportError(propInfo.Name, $"Name value pair string can only contain {nvpSetting.MaximumItems} items");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validates a http response
+        /// </summary>
+        /// <param name="propInfo"></param>
+        /// <param name="propValue"></param>
+        /// <param name="isDefault"></param>
+        private static void ValidateHttpResponse(in PropertyInfo propInfo, in object propValue,
+            in bool isDefault)
+        {
+            if (propInfo.PropertyType.FullName == "System.Int32")
+            {
+                SettingHttpResponseAttribute httpResponseSetting = (SettingHttpResponseAttribute)propInfo.GetCustomAttribute(
+                    typeof(SettingHttpResponseAttribute));
+
+                if (httpResponseSetting != null)
+                {
+                    if (!httpResponseSetting.ValidateResponseCode(Convert.ToInt32(propValue)))
+                        ReportError(propInfo.Name, $"{propValue.ToString()} is not valid for {propInfo.Name} " +
+                            $"expecting type {httpResponseSetting.ResponseType.ToString()}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validates a http response
+        /// </summary>
+        /// <param name="propInfo"></param>
+        /// <param name="propValue"></param>
+        /// <param name="isDefault"></param>
+        private static void ValidateRegex(in PropertyInfo propInfo, in object propValue,
+            in bool isDefault)
+        {
+            if (propInfo.PropertyType.FullName == "System.String")
+            {
+                SettingRegexAttribute regexSetting = (SettingRegexAttribute)propInfo.GetCustomAttribute(
+                    typeof(SettingRegexAttribute));
+
+                if (regexSetting != null)
+                {
+                    Regex regex = new Regex(regexSetting.Regex);
+                    Match match = regex.Match(propValue.ToString());
+                    if (!match.Success)
+                    {
+                        ReportError(propInfo.Name, $"{propValue.ToString()} is not valid for {propInfo.Name} " +
+                            $"expecting regex compatible to {regexSetting.Regex}");
+                    }
                 }
             }
         }

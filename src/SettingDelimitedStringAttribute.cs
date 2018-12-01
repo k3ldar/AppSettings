@@ -15,55 +15,56 @@
  *
  *  Product:  AppSettings
  *  
- *  File: SettingEmailAttribute.cs
+ *  File: SettingDelimitedStringAttribute.cs
  *
- *  Purpose:  Validates that the string is a valid email address
+ *  Purpose:  Validates that the string is a delimited string
  *
  *  Date        Name                Reason
- *  28/11/2018  Simon Carter        Initially Created
+ *  30/11/2018  Simon Carter        Initially Created
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 using System;
-using System.Linq;
 
 namespace AppSettings
 {
-    /// <summary>
-    /// Validates that the setting is a valid email address
-    /// </summary>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public sealed class SettingEmailAttribute : Attribute
+    public sealed class SettingDelimitedStringAttribute : Attribute
     {
-        #region Constants
-
-        private static readonly char[] validSeperators = { ';', '#', '\t', '\n', '\r' };
-
-        #endregion Constants
-
         #region Constructors
 
-        public SettingEmailAttribute()
+        public SettingDelimitedStringAttribute(char delimiter)
+            : this (delimiter, 0)
         {
-            AllowMultiple = false;
+            Delimiter = delimiter;
+            MinimumItems = uint.MinValue;
         }
 
-        public SettingEmailAttribute(char seperatorCharacter)
+        public SettingDelimitedStringAttribute(char delimiter, uint minimumItems)
+            : this (delimiter, minimumItems, 100)
         {
-            if (!validSeperators.Contains(seperatorCharacter))
-                throw new ArgumentOutOfRangeException(nameof(seperatorCharacter), "invalid separator character");
 
-            AllowMultiple = true;
-            SeperatorChar = seperatorCharacter;
+        }
+
+        public SettingDelimitedStringAttribute(char delimiter, uint minimumItems, uint maximumItems)
+        {
+            if (minimumItems >= maximumItems)
+                throw new ArgumentOutOfRangeException(nameof(maximumItems));
+
+            Delimiter = delimiter;
+            MinimumItems = minimumItems;
+            MaximumItems = maximumItems;
         }
 
         #endregion Constructors
 
-        #region Public Properties
+        #region Properties
 
-        public bool AllowMultiple { get; private set; }
+        public char Delimiter { get; private set; }
 
-        public char SeperatorChar { get; set; }
+        public uint MinimumItems { get; private set; }
 
-        #endregion Public Properties
+        public uint MaximumItems { get; private set; }
+
+        #endregion Properties
     }
 }

@@ -15,12 +15,12 @@
  *
  *  Product:  AppSettings
  *  
- *  File: SettingEmailAttribute.cs
+ *  File: SettingRegexAttribute.cs
  *
- *  Purpose:  Validates that the string is a valid email address
+ *  Purpose:  Validates that the string against user supplied regex
  *
  *  Date        Name                Reason
- *  28/11/2018  Simon Carter        Initially Created
+ *  01/12/2018  Simon Carter        Initially Created
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 using System;
@@ -29,40 +29,26 @@ using System.Linq;
 namespace AppSettings
 {
     /// <summary>
-    /// Validates that the setting is a valid email address
+    /// Validates that the setting against a regex
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public sealed class SettingEmailAttribute : Attribute
+    public sealed class SettingRegexAttribute : Attribute
     {
-        #region Constants
-
-        private static readonly char[] validSeperators = { ';', '#', '\t', '\n', '\r' };
-
-        #endregion Constants
-
         #region Constructors
 
-        public SettingEmailAttribute()
+        public SettingRegexAttribute(string regex)
         {
-            AllowMultiple = false;
-        }
+            if (String.IsNullOrEmpty(regex))
+                throw new ArgumentNullException(nameof(regex), "You must specify a regex value");
 
-        public SettingEmailAttribute(char seperatorCharacter)
-        {
-            if (!validSeperators.Contains(seperatorCharacter))
-                throw new ArgumentOutOfRangeException(nameof(seperatorCharacter), "invalid separator character");
-
-            AllowMultiple = true;
-            SeperatorChar = seperatorCharacter;
+            Regex = regex;
         }
 
         #endregion Constructors
 
         #region Public Properties
 
-        public bool AllowMultiple { get; private set; }
-
-        public char SeperatorChar { get; set; }
+        public string Regex { get; private set; }
 
         #endregion Public Properties
     }
