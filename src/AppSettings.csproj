@@ -5,7 +5,7 @@
     <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
     <LangVersion>latest</LangVersion>
     <Authors>Simon Carter</Authors>
-    <PackageTags>Application Setting Validation</PackageTags>
+    <PackageTags>Application Setting Validation email, delimited, http response, name value pairs, optional, path exists, range, regex, string, uri, valid path</PackageTags>
   </PropertyGroup>
 
 
@@ -28,7 +28,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageReleaseNotes>Initial version, validates application settings</PackageReleaseNotes>
     <PackageId>ApplicationSettings</PackageId>
-    <Version>1.0.0.2</Version>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
 
