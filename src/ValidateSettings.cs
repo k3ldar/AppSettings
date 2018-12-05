@@ -28,6 +28,7 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Reflection;
 
@@ -165,9 +166,13 @@ namespace AppSettings
                     {
                         if (attribute.ConstructorArguments[0].Value.GetType() == propertyInfo.PropertyType)
                         {
-                            ValidateSettingValues(propertyInfo, attribute.ConstructorArguments[0].Value, true);
-                            propertyInfo.SetValue(instance == null ? propertyInfo : instance, 
-                                attribute.ConstructorArguments[0].Value);
+                            object currentValue = attribute.ConstructorArguments[0].Value;
+
+                            if (propertyInfo.PropertyType.FullName == "System.String")
+                                currentValue = ExpandVariables(propertyInfo.Name, (string)currentValue);
+
+                            ValidateSettingValues(propertyInfo, currentValue, true);
+                            propertyInfo.SetValue(instance == null ? propertyInfo : instance, currentValue);
                             return;
                         }
                         else
@@ -588,6 +593,71 @@ namespace AppSettings
         }
 
         #endregion Attribute Validation Methods
+
+        #region Expand Variables
+
+        private static object ExpandVariables(in string propertyName, string s)
+        {
+            return ReplaceSpecialWords(Environment.ExpandEnvironmentVariables(s), '%', '%');
+        }
+
+        private static string GetCustomReplacement(in ReplacableWord replacableWord)
+        {
+            switch (replacableWord)
+            {
+                case ReplacableWord.AppPath:
+                    return Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+                default:
+                    throw new InvalidOperationException("Invalid ReplacableWord");
+            }
+        }
+
+        private static string ReplaceSpecialWords(in string s, in char startChar, in char endChar)
+        {
+            StringBuilder Result = new StringBuilder(s.Length);
+
+            bool startFound = false;
+            string currentWord = String.Empty;
+
+            for (int i = 0; i < s.Length; i++)
+            {
+                char currChar = s[i];
+
+                if (!startFound && currChar == startChar)
+                {
+                    startFound = true;
+                }
+                else if (startFound && currChar == endChar)
+                {
+                    if (!String.IsNullOrEmpty(currentWord))
+                    {
+                        if (Enum.TryParse(currentWord, out Environment.SpecialFolder specialFolder))
+                        {
+                            Result.Append(Environment.GetFolderPath(specialFolder));
+                        }
+                        else if (Enum.TryParse(currentWord, out ReplacableWord customReplace))
+                        {
+                            Result.Append(GetCustomReplacement(customReplace));
+                        }
+                    }
+
+                    currentWord = String.Empty;
+                    startFound = false;
+                } 
+                else if (!startFound)
+                {
+                    Result.Append(currChar);
+                }
+                else if (startFound)
+                {
+                    currentWord += currChar;
+                }
+            }
+
+            return Result.ToString();
+        }
+
+        #endregion Expand Variables
 
         #endregion Private Static Methods
     }
