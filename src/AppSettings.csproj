@@ -26,9 +26,9 @@
     <PackageProjectUrl>https://github.com/k3ldar/AppSettings/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/k3ldar/AppSettings/</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageReleaseNotes>Initial version, validates application settings</PackageReleaseNotes>
+    <PackageReleaseNotes>Default value can accept Special characters like Environment.SpecialFolder, Environtment Variables or custom variables like AppPath  All enclosed within %AppPath%</PackageReleaseNotes>
     <PackageId>ApplicationSettings</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
 
