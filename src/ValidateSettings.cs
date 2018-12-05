@@ -95,7 +95,9 @@ namespace AppSettings
             foreach (PropertyInfo propertyInfo in classType.GetProperties(
                 BindingFlags.Public | BindingFlags.Static))
             {
-                bool isDefault = propertyInfo.GetValue(propertyInfo) == null ||
+                bool isDefault = (propertyInfo.PropertyType.FullName == "System.String" && 
+                    String.IsNullOrEmpty((string)propertyInfo.GetValue(propertyInfo))) ||
+                    propertyInfo.GetValue(propertyInfo) == null ||
                     propertyInfo.GetValue(propertyInfo).Equals(GetDefault(propertyInfo.PropertyType));
 
                 ValidateSetting(propertyInfo, isDefault, null);
@@ -104,7 +106,9 @@ namespace AppSettings
             foreach (PropertyInfo propertyInfo in classType.GetProperties(
                 BindingFlags.Public | BindingFlags.Instance))
             {
-                bool isDefault = propertyInfo.GetValue(settings) == null ||
+                bool isDefault = (propertyInfo.PropertyType.FullName == "System.String" &&
+                    String.IsNullOrEmpty((string)propertyInfo.GetValue(settings))) || 
+                    propertyInfo.GetValue(settings) == null ||
                     propertyInfo.GetValue(settings).Equals(GetDefault(propertyInfo.PropertyType));
 
                 ValidateSetting(propertyInfo, isDefault, settings);
