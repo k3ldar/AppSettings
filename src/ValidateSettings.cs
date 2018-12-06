@@ -190,6 +190,11 @@ namespace AppSettings
             if (optionalSetting != null)
             {
                 ReportError(propertyInfo.Name, "Value is optional");
+
+                if (!isDefault)
+                    ValidateSettingValues(propertyInfo, 
+                        propertyInfo.GetValue(instance == null ? propertyInfo : instance, null), false);
+
                 return;
             }
 
@@ -369,11 +374,40 @@ namespace AppSettings
             if (attrRange != null)
             {
                 // the value is within range
-                if (decimal.TryParse(propValue.ToString(), out decimal parsedValue))
+                if (attrRange.MinimumValue.GetType().Name == propValue.GetType().Name &&
+                    attrRange.MaximumValue.GetType().Name == propValue.GetType().Name)
                 {
+                    bool success = false;
 
+                    switch (attrRange.MinimumValue.GetType().Name)
+                    {
+                        case "Single":
+                            if (float.TryParse(propValue.ToString(), out float floatValue))
+                                success = floatValue >= Convert.ToSingle(attrRange.MinimumValue) &&
+                                    floatValue <= Convert.ToSingle(attrRange.MaximumValue);
+                            break;
+                        case "Int32":
+                            if (int.TryParse(propValue.ToString(), out int intValue))
+                                success = intValue >= Convert.ToInt32(attrRange.MinimumValue) &&
+                                    intValue <= Convert.ToInt32(attrRange.MaximumValue);
+                            break;
+                        case "UInt32":
+                            if (uint.TryParse(propValue.ToString(), out uint uintValue))
+                                success = uintValue >= Convert.ToUInt32(attrRange.MinimumValue) &&
+                                    uintValue <= Convert.ToUInt32(attrRange.MaximumValue);
+                            break;
+                        case "Int64":
+                            if (Int64.TryParse(propValue.ToString(), out long longValue))
+                                success = longValue >= Convert.ToInt32(attrRange.MinimumValue) &&
+                                    longValue <= Convert.ToInt32(attrRange.MaximumValue);
+                            break;
+                        default:
+                            ReportError(propInfo.Name, "Must be long, int, uint or float");
+                            break;
 
-                    if (parsedValue < attrRange.MinimumValue || parsedValue > attrRange.MaximumValue)
+                    }
+
+                    if (!success)
                         ReportError(propInfo.Name, $"Value ({propValue.ToString()}) is outside of the valid range " +
                             $"and must be between {attrRange.MinimumValue} and {attrRange.MaximumValue}");
                 }
@@ -458,7 +492,10 @@ namespace AppSettings
 
                 if (stringSetting != null)
                 {
-                    string propVal = propValue.ToString();
+                    string propVal = propValue == null ? null : propValue.ToString();
+
+                    if (stringSetting.AllowNullOrEmpty && String.IsNullOrEmpty(propVal))
+                        return;
 
                     if (!stringSetting.AllowNullOrEmpty && String.IsNullOrEmpty(propVal))
                         ReportError(propInfo.Name, "Not allowed to be null or empty");

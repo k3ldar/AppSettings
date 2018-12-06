@@ -33,33 +33,36 @@ namespace AppSettings
         #region Constructors
 
         public SettingRangeAttribute(int minimumValue, int maximumValue)
-            : this (Convert.ToDecimal(minimumValue), Convert.ToDecimal(maximumValue))
         {
+            MinimumValue = minimumValue;
+            MaximumValue = maximumValue;
         }
 
         public SettingRangeAttribute(uint minimumValue, uint maximumValue)
-            : this (Convert.ToDecimal(minimumValue), Convert.ToDecimal(maximumValue))
         {
+            MinimumValue = minimumValue;
+            MaximumValue = maximumValue;
         }
 
         public SettingRangeAttribute(float minimumValue, float maximumValue)
-            : this (Convert.ToDecimal(minimumValue), Convert.ToDecimal(maximumValue))
         {
+            MinimumValue = minimumValue;
+            MaximumValue = maximumValue;
         }
 
-        public SettingRangeAttribute(decimal minimumValue, decimal maximumValue)
+        public SettingRangeAttribute(long minimumValue, long maximumValue)
         {
-            MinimumValue = Convert.ToDecimal(minimumValue);
-            MaximumValue = Convert.ToDecimal(maximumValue);
+            MinimumValue = minimumValue;
+            MaximumValue = maximumValue;
         }
 
         #endregion Constructors
 
         #region Properties
 
-        public decimal MinimumValue { get; private set; }
+        public object MinimumValue { get; private set; }
 
-        public decimal MaximumValue { get; private set; }
+        public object MaximumValue { get; private set; }
 
         #endregion Properties
     }
