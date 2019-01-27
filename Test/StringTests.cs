@@ -50,6 +50,12 @@ namespace AppSettings.Tests
             public string Value { get; set; }
         }
 
+        public class StringEnvironmentVariable
+        {
+            [SettingDefault("%GeoIpKey%")]
+            public string Value { get; set; }
+        }
+
         [TestMethod]
         public void NullStringValid()
         {
@@ -106,6 +112,16 @@ namespace AppSettings.Tests
             };
 
             test = ValidateSettings<StringTestNotNullLength>.Validate(test);
+        }
+
+        [TestMethod]
+        public void RetrieveEnvironmentalVariable()
+        {
+            StringEnvironmentVariable environmentVariable = new StringEnvironmentVariable();
+
+            environmentVariable = ValidateSettings<StringEnvironmentVariable>.Validate(environmentVariable);
+
+            Assert.AreEqual(environmentVariable.Value, "123456789");
         }
     }
 }

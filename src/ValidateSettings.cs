@@ -150,7 +150,7 @@ namespace AppSettings
             {
                 if (SettingOverride.OverrideSettingValue(propertyInfo.Name, ref propertyValue))
                 {
-                    propertyInfo.SetValue(instance == null ? propertyInfo : instance, propertyValue);
+                    propertyInfo.SetValue(instance ?? propertyInfo, propertyValue);
                     ValidateSettingValues(propertyInfo, propertyValue, false);
 
                     return;
@@ -172,7 +172,7 @@ namespace AppSettings
                                 currentValue = ExpandVariables(propertyInfo.Name, (string)currentValue);
 
                             ValidateSettingValues(propertyInfo, currentValue, true);
-                            propertyInfo.SetValue(instance == null ? propertyInfo : instance, currentValue);
+                            propertyInfo.SetValue(instance ?? propertyInfo, currentValue);
                             return;
                         }
                         else
@@ -193,7 +193,7 @@ namespace AppSettings
 
                 if (!isDefault)
                     ValidateSettingValues(propertyInfo, 
-                        propertyInfo.GetValue(instance == null ? propertyInfo : instance, null), false);
+                        propertyInfo.GetValue(instance ?? propertyInfo, null), false);
 
                 return;
             }
@@ -211,7 +211,7 @@ namespace AppSettings
             }
 
             ValidateSettingValues(propertyInfo, 
-                propertyInfo.GetValue(instance == null ? propertyInfo : instance, null), false);
+                propertyInfo.GetValue(instance ?? propertyInfo, null), false);
         }
 
         private static void ReportError(in string propertyName, string error)
@@ -272,8 +272,8 @@ namespace AppSettings
                                 @"\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\" +
                                 @".)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$";
 
-                System.Text.RegularExpressions.Regex exp = new System.Text.RegularExpressions.Regex(strRegex);
-                System.Text.RegularExpressions.Match m;
+                Regex exp = new Regex(strRegex);
+                Match m;
 
                 if (emailSetting.AllowMultiple)
                 {
@@ -432,8 +432,6 @@ namespace AppSettings
 
             if (uriSetting != null)
             {
-                Uri uriResult;
-
                 if (propValue == null || String.IsNullOrEmpty(propValue.ToString()))
                 {
                     ReportError(propInfo.Name, "Not a valid Uri");
@@ -441,7 +439,7 @@ namespace AppSettings
                 }
 
                 // check it's a valid Uri
-                if (!Uri.TryCreate(propValue.ToString(), uriSetting.UriKind, out uriResult))
+                if (!Uri.TryCreate(propValue.ToString(), uriSetting.UriKind, out Uri uriResult))
                 {
                     ReportError(propInfo.Name, $"Value {propValue.ToString()}, is not a valid Uri");
                     return;
