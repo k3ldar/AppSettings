@@ -21,14 +21,14 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Description>Add data attributes to setting class methods to validate input, set default values etc</Description>
     <Company>Simon Carter</Company>
-    <Copyright>Copyright (c) 2018.  Simon Carter.  All rights reserved.</Copyright>
+    <Copyright>Copyright (c) 2018 - 2019.  Simon Carter.  All rights reserved.</Copyright>
     <PackageLicenseUrl>https://github.com/k3ldar/AppSettings/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/k3ldar/AppSettings/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/k3ldar/AppSettings/</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReleaseNotes>Default value can accept Special characters like Environment.SpecialFolder, Environtment Variables or custom variables like AppPath  All enclosed within %AppPath%</PackageReleaseNotes>
     <PackageId>ApplicationSettings</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
   </PropertyGroup>
 
 
