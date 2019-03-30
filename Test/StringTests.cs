@@ -54,6 +54,9 @@ namespace AppSettings.Tests
         {
             [SettingDefault("%GeoIpKey%")]
             public string Value { get; set; }
+
+            [SettingDefault("%connstandard%")]
+            public string Standard { get; set; }
         }
 
         [TestMethod]

@@ -249,6 +249,7 @@ namespace AppSettings
             ValidateNVPair(propInfo, propValue, isDefault);
             ValidateHttpResponse(propInfo, propValue, isDefault);
             ValidateRegex(propInfo, propValue, isDefault);
+            ValidateGuid(propInfo, propValue, isDefault);
         }
 
         #region Attribute Validation Methods
@@ -622,6 +623,31 @@ namespace AppSettings
                     {
                         ReportError(propInfo.Name, $"{propValue.ToString()} is not valid for {propInfo.Name} " +
                             $"expecting regex compatible to {regexSetting.Regex}");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validates a string is a valid guid
+        /// </summary>
+        /// <param name="propInfo"></param>
+        /// <param name="propValue"></param>
+        /// <param name="isDefault"></param>
+        private static void ValidateGuid(in PropertyInfo propInfo, in object propValue,
+            in bool isDefault)
+        {
+            if (propInfo.PropertyType.FullName == "System.String")
+            {
+                SettingGuidAttribute guidSetting = (SettingGuidAttribute)propInfo.GetCustomAttribute(
+                    typeof(SettingGuidAttribute));
+
+                if (guidSetting != null)
+                {
+                    if (!Guid.TryParse(propValue.ToString(), out Guid guid))
+                    {
+                        ReportError(propInfo.Name, $"{propValue.ToString()} is not valid for {propInfo.Name} " +
+                            "expecting Guid value");
                     }
                 }
             }
