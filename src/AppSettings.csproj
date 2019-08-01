@@ -28,7 +28,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageReleaseNotes>Default value can accept Special characters like Environment.SpecialFolder, Environtment Variables or custom variables like AppPath  All enclosed within %AppPath%</PackageReleaseNotes>
     <PackageId>ApplicationSettings</PackageId>
-    <Version>1.2.0</Version>
+    <Version>1.3.0</Version>
   </PropertyGroup>
 
 

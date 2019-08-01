@@ -68,11 +68,13 @@ namespace AppSettings.Tests
         [TestMethod]
         public void ValidDefaultEnvVar()
         {
+            //System.Environment.SetEnvironmentVariable("GeoIpKey", "123456789");
+            //System.Environment.SetEnvironmentVariable("connstandard", "the connection string");
             DefaultTestStringEnvVar test = new DefaultTestStringEnvVar();
 
             test = ValidateSettings<DefaultTestStringEnvVar>.Validate(test);
 
-            Assert.AreEqual(test.Value, "C:\\WINDOWS\\system32");
+            Assert.AreEqual(test.Value, "C:\\WINDOWS\\system32", true);
         }
 
         [TestMethod]

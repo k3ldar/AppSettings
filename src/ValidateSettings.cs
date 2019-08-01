@@ -217,9 +217,9 @@ namespace AppSettings
         private static void ReportError(in string propertyName, string error)
         {
             if (SettingError != null)
-                SettingError.SettingError(propertyName, error);
+                SettingError.SettingError(propertyName, $"{propertyName}: {error}");
             else if (!error.Equals("Value is optional"))
-                throw new SettingException(propertyName, error);
+                throw new SettingException(propertyName, $"{propertyName}: {error}");
         }
 
         private static object GetDefault(in Type type)

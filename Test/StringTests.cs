@@ -120,11 +120,15 @@ namespace AppSettings.Tests
         [TestMethod]
         public void RetrieveEnvironmentalVariable()
         {
+            Environment.SetEnvironmentVariable("GeoIpKey", "123456789");
+            Environment.SetEnvironmentVariable("connstandard", "the connection string");
             StringEnvironmentVariable environmentVariable = new StringEnvironmentVariable();
 
             environmentVariable = ValidateSettings<StringEnvironmentVariable>.Validate(environmentVariable);
 
             Assert.AreEqual(environmentVariable.Value, "123456789");
+
+            
         }
     }
 }
