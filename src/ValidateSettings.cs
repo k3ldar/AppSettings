@@ -172,7 +172,14 @@ namespace AppSettings
                                 currentValue = ExpandVariables(propertyInfo.Name, (string)currentValue);
 
                             ValidateSettingValues(propertyInfo, currentValue, true);
-                            propertyInfo.SetValue(instance ?? propertyInfo, currentValue);
+
+                            bool? isWithinRange = ValueIsWithinRange(propertyInfo, propertyInfo.GetValue(instance ?? propertyInfo));
+
+                            if (isWithinRange == null || !isWithinRange.Value)
+                            {
+                                propertyInfo.SetValue(instance ?? propertyInfo, currentValue);
+                            }
+
                             return;
                         }
                         else
@@ -651,6 +658,59 @@ namespace AppSettings
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Validates range attribute settings
+        /// </summary>
+        /// <param name="propInfo"></param>
+        /// <param name="propValue"></param>
+        /// <param name="isDefault"></param>
+        private static bool? ValueIsWithinRange(in PropertyInfo propInfo, in object propValue)
+        {
+            SettingRangeAttribute attrRange = (SettingRangeAttribute)propInfo.GetCustomAttribute(
+                    typeof(SettingRangeAttribute));
+
+            if (attrRange != null)
+            {
+                // the value is within range
+                if (attrRange.MinimumValue.GetType().Name == propValue.GetType().Name &&
+                    attrRange.MaximumValue.GetType().Name == propValue.GetType().Name)
+                {
+                    bool success = false;
+
+                    switch (attrRange.MinimumValue.GetType().Name)
+                    {
+                        case "Single":
+                            if (float.TryParse(propValue.ToString(), out float floatValue))
+                                success = floatValue >= Convert.ToSingle(attrRange.MinimumValue) &&
+                                    floatValue <= Convert.ToSingle(attrRange.MaximumValue);
+                            break;
+                        case "Int32":
+                            if (int.TryParse(propValue.ToString(), out int intValue))
+                                success = intValue >= Convert.ToInt32(attrRange.MinimumValue) &&
+                                    intValue <= Convert.ToInt32(attrRange.MaximumValue);
+                            break;
+                        case "UInt32":
+                            if (uint.TryParse(propValue.ToString(), out uint uintValue))
+                                success = uintValue >= Convert.ToUInt32(attrRange.MinimumValue) &&
+                                    uintValue <= Convert.ToUInt32(attrRange.MaximumValue);
+                            break;
+                        case "Int64":
+                            if (Int64.TryParse(propValue.ToString(), out long longValue))
+                                success = longValue >= Convert.ToInt32(attrRange.MinimumValue) &&
+                                    longValue <= Convert.ToInt32(attrRange.MaximumValue);
+                            break;
+                        default:
+                            return null;
+
+                    }
+
+                    return success;
+                }
+            }
+
+            return null;
         }
 
         #endregion Attribute Validation Methods

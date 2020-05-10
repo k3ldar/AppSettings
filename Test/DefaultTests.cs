@@ -23,6 +23,7 @@
  *  06/12/2018  Simon Carter        Initially Created
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+using System.ComponentModel.DataAnnotations;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 
@@ -53,6 +54,21 @@ namespace AppSettings.Tests
         {
             [SettingDefault("%CommonMusic%")]
             public string Value { get; set; }
+        }
+
+        public class DefaultIntZeroWithinRange
+        {
+            [SettingDefault(1)]
+            [SettingRange(0, 10)]
+            public int Value { get; set; }
+        }
+
+        [TestMethod]
+        public void ValidateDefaultIntWithRange()
+        {
+            DefaultIntZeroWithinRange test = new DefaultIntZeroWithinRange();
+            test = ValidateSettings<DefaultIntZeroWithinRange>.Validate(test);
+            Assert.AreEqual(0, test.Value);
         }
 
         [TestMethod]

@@ -73,13 +73,12 @@ namespace AppSettings.Tests
         }
 
         [TestMethod]
-        //[ExpectedException(typeof(SettingException))]
+        [ExpectedException(typeof(SettingException))]
         public void InvalidUriEndpoint()
         {
-            // can not perform this test as my router intervienes
             UriEndpointTest test = new UriEndpointTest()
             {
-                Value = "http://www.thereshouldbenodimainhere.com"
+                Value = "http://www.thereshouldbenodomainhere.com"
             };
 
             test = ValidateSettings<UriEndpointTest>.Validate(test);
