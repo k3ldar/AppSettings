@@ -24,11 +24,14 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 using System;
+using System.Diagnostics.CodeAnalysis;
+
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AppSettings.Tests
 {
     [TestClass]
+    [ExcludeFromCodeCoverage]
     public class PathExistsTests
     {
         public class PathExistValid

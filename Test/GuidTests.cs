@@ -25,6 +25,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -32,6 +33,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace AppSettings.Tests
 {
     [TestClass]
+    [ExcludeFromCodeCoverage]
     public class GuidTests
     {
         public class ValidGuid

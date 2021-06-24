@@ -23,11 +23,14 @@
  *  06/12/2018  Simon Carter        Initially Created
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+using System.Diagnostics.CodeAnalysis;
+
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace AppSettings.Tests
 {
     [TestClass]
+    [ExcludeFromCodeCoverage]
     public class DelimitedStringTest
     {
         public class Delimited
