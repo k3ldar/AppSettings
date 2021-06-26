@@ -15,41 +15,48 @@
  *
  *  Product:  AppSettings
  *  
- *  File: SettingRegexAttribute.cs
+ *  File: SettingUriAttribute.cs
  *
- *  Purpose:  Validates that the string against user supplied regex
+ *  Purpose:  Ensures the string is a valid Uri
  *
  *  Date        Name                Reason
- *  01/12/2018  Simon Carter        Initially Created
+ *  28/11/2018  Simon Carter        Initially Created
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 using System;
-using System.Linq;
 
 namespace AppSettings
 {
-    /// <summary>
-    /// Validates that the setting against a regex
-    /// </summary>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public sealed class SettingRegexAttribute : Attribute
+    public sealed class SettingUriAttribute : Attribute
     {
         #region Constructors
 
-        public SettingRegexAttribute(string regex)
+        public SettingUriAttribute()
+            : this(false)
         {
-            if (String.IsNullOrEmpty(regex))
-                throw new ArgumentNullException(nameof(regex), "You must specify a regex value");
 
-            Regex = regex;
+        }
+
+        public SettingUriAttribute(bool validateEndPoint)
+            : this(validateEndPoint, UriKind.Absolute)
+        {
+        }
+
+        public SettingUriAttribute(bool validateEndPoint, UriKind uriKind)
+        {
+            ValidateEndPoint = validateEndPoint;
+            UriKind = uriKind;
         }
 
         #endregion Constructors
 
-        #region Public Properties
+        #region Properties
 
-        public string Regex { get; private set; }
+        public bool ValidateEndPoint { get; }
 
-        #endregion Public Properties
+        public UriKind UriKind { get; }
+
+        #endregion Properties
     }
 }

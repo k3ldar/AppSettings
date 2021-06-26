@@ -15,55 +15,55 @@
  *
  *  Product:  AppSettings
  *  
- *  File: SettingEmailAttribute.cs
+ *  File: SettingRangeAttribute.cs
  *
- *  Purpose:  Validates that the string is a valid email address
+ *  Purpose:  Min/max values for integral and decimal types
  *
  *  Date        Name                Reason
  *  28/11/2018  Simon Carter        Initially Created
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 using System;
-using System.Linq;
 
 namespace AppSettings
 {
-    /// <summary>
-    /// Validates that the setting is a valid email address
-    /// </summary>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public sealed class SettingEmailAttribute : Attribute
+    public sealed class SettingRangeAttribute : Attribute
     {
-        #region Constants
-
-        private static readonly char[] validSeperators = { ';', '#', '\t', '\n', '\r' };
-
-        #endregion Constants
-
         #region Constructors
 
-        public SettingEmailAttribute()
+        public SettingRangeAttribute(int minimumValue, int maximumValue)
         {
-            AllowMultiple = false;
+            MinimumValue = minimumValue;
+            MaximumValue = maximumValue;
         }
 
-        public SettingEmailAttribute(char seperatorCharacter)
+        public SettingRangeAttribute(uint minimumValue, uint maximumValue)
         {
-            if (!validSeperators.Contains(seperatorCharacter))
-                throw new ArgumentOutOfRangeException(nameof(seperatorCharacter), "invalid separator character");
+            MinimumValue = minimumValue;
+            MaximumValue = maximumValue;
+        }
 
-            AllowMultiple = true;
-            SeperatorChar = seperatorCharacter;
+        public SettingRangeAttribute(float minimumValue, float maximumValue)
+        {
+            MinimumValue = minimumValue;
+            MaximumValue = maximumValue;
+        }
+
+        public SettingRangeAttribute(long minimumValue, long maximumValue)
+        {
+            MinimumValue = minimumValue;
+            MaximumValue = maximumValue;
         }
 
         #endregion Constructors
 
-        #region Public Properties
+        #region Properties
 
-        public bool AllowMultiple { get; private set; }
+        public object MinimumValue { get; }
 
-        public char SeperatorChar { get; set; }
+        public object MaximumValue { get; }
 
-        #endregion Public Properties
+        #endregion Properties
     }
 }

@@ -102,7 +102,7 @@ namespace AppSettings
 
         #region Public Properties
 
-        public object DefaultValue { get; private set; }
+        public object DefaultValue { get; }
 
         #endregion Public Properties
     }

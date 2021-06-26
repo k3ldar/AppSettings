@@ -61,6 +61,7 @@ namespace AppSettings
         {
             if (responseType == HttpResponseType.Custom)
                 throw new ArgumentOutOfRangeException(nameof(responseType), "Invalid constructor for custom range");
+
             ResponseType = responseType;
         }
 
@@ -77,9 +78,9 @@ namespace AppSettings
 
         #region Properties
 
-        public HttpResponseType ResponseType { get; private set; }
+        public HttpResponseType ResponseType { get; }
 
-        public int[] ValidCodes { get; private set; }
+        public int[] ValidCodes { get; }
 
         #endregion Properties
 

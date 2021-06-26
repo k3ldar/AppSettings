@@ -15,12 +15,12 @@
  *
  *  Product:  AppSettings
  *  
- *  File: SettingDelimitedStringAttribute.cs
+ *  File: SettingStringAttribute.cs
  *
- *  Purpose:  Validates that the string is a delimited string
+ *  Purpose:  Options for string properties
  *
  *  Date        Name                Reason
- *  30/11/2018  Simon Carter        Initially Created
+ *  28/11/2018  Simon Carter        Initially Created
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 using System;
@@ -28,42 +28,41 @@ using System;
 namespace AppSettings
 {
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public sealed class SettingDelimitedStringAttribute : Attribute
+    public sealed class SettingStringAttribute : Attribute
     {
         #region Constructors
 
-        public SettingDelimitedStringAttribute(char delimiter)
-            : this (delimiter, 0)
+        public SettingStringAttribute(uint minimumLength, uint maximumLength)
+            : this (false, minimumLength, maximumLength)
         {
-            Delimiter = delimiter;
-            MinimumItems = uint.MinValue;
         }
 
-        public SettingDelimitedStringAttribute(char delimiter, uint minimumItems)
-            : this (delimiter, minimumItems, 100)
+        public SettingStringAttribute(bool allowNullOrEmpty)
+            : this (allowNullOrEmpty, 1, 500)
         {
 
         }
 
-        public SettingDelimitedStringAttribute(char delimiter, uint minimumItems, uint maximumItems)
+        public SettingStringAttribute(bool allowNullOrEmpty, uint minimumLength, uint maximumLength)
         {
-            if (minimumItems >= maximumItems)
-                throw new ArgumentOutOfRangeException(nameof(maximumItems));
+            if (maximumLength < minimumLength)
+                throw new ArgumentOutOfRangeException(nameof(maximumLength), 
+                    $"{nameof(maximumLength)} can not be less than {nameof(minimumLength)}");
 
-            Delimiter = delimiter;
-            MinimumItems = minimumItems;
-            MaximumItems = maximumItems;
+            AllowNullOrEmpty = allowNullOrEmpty;
+            MinLength = minimumLength;
+            MaxLength = maximumLength;
         }
 
         #endregion Constructors
 
         #region Properties
 
-        public char Delimiter { get; private set; }
+        public uint MinLength { get; }
 
-        public uint MinimumItems { get; private set; }
+        public uint MaxLength { get; }
 
-        public uint MaximumItems { get; private set; }
+        public bool AllowNullOrEmpty { get; }
 
         #endregion Properties
     }

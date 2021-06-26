@@ -35,8 +35,7 @@ namespace AppSettings
         public SettingNameValuePairAttribute(char delimiter)
                 : this(delimiter, 0)
         {
-            Delimiter = delimiter;
-            MinimumItems = uint.MinValue;
+
         }
 
         public SettingNameValuePairAttribute(char delimiter, uint minimumItems)

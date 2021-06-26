@@ -36,47 +36,43 @@ namespace AppSettings
 {
     public static class ValidateSettings<T>
     {
-        #region Public Static Properties
-
-        public static ISettingError SettingError { get; set; }
-
-        public static ISettingOverride SettingOverride { get; set; }
-
-        #endregion Public Static Properties
-
         #region Public Static Methods
 
         public static T Validate(T settings, ISettingOverride settingOverride, 
-            ISettingError settingError)
-        {
-            SettingOverride = settingOverride ?? throw new ArgumentNullException(nameof(settingOverride));
-            SettingError = settingError ?? throw new ArgumentNullException(nameof(settingError));
-                
-            return (Validate(settings));
-        }
-
-        public static T Validate(T settings, ISettingOverride settingOverride)
-        {
-            SettingOverride = settingOverride ?? throw new ArgumentNullException(nameof(settingOverride));
-
-            return (Validate(settings));
-        }
-
-        public static T Validate(T settings, ISettingError settingError)
-        {
-            SettingError = settingError ?? throw new ArgumentNullException(nameof(settingError));
-
-            return (Validate(settings));
-        }
-
-        public static T Validate (T settings)
+            ISettingError settingError, IApplicationOverride applicationOverride)
         {
             if (settings == null)
                 throw new ArgumentNullException(nameof(settings));
 
-            ValidateAllSettings(settings.GetType(), settings);
+            ValidateAllSettings(settings.GetType(), settings, settingOverride, settingError, applicationOverride);
 
-            return (settings);
+            return settings;
+        }
+
+        public static T Validate(T settings, ISettingOverride settingOverride)
+        {
+            return Validate(settings, settingOverride, null);
+        }
+
+        public static T Validate(T settings, ISettingOverride settingOverride,
+            ISettingError settingError)
+        {
+            return Validate(settings, settingOverride, settingError, null);
+        }
+
+        public static T Validate(T settings, ISettingError settingError)
+        {
+            return Validate(settings, null, settingError);
+        }
+
+        public static T Validate(T settings, IApplicationOverride applicationOverride)
+        {
+            return Validate(settings, null, null, applicationOverride);
+        }
+
+        public static T Validate (T settings)
+        {
+            return Validate(settings, null, null);
         }
 
         #endregion Public Static Methods
@@ -88,7 +84,8 @@ namespace AppSettings
         /// </summary>
         /// <param name="path"></param>
         /// <param name="classType"></param>
-        private static void ValidateAllSettings(in Type classType, in T settings)
+        private static void ValidateAllSettings(in Type classType, in T settings, 
+            ISettingOverride settingOverride, ISettingError settingError, IApplicationOverride applicationOverride)
         {
             if (classType == null)
                 throw new ArgumentNullException(nameof(classType));
@@ -101,7 +98,7 @@ namespace AppSettings
                     propertyInfo.GetValue(propertyInfo) == null ||
                     propertyInfo.GetValue(propertyInfo).Equals(GetDefault(propertyInfo.PropertyType));
 
-                ValidateSetting(propertyInfo, isDefault, null);
+                ValidateSetting(propertyInfo, isDefault, null, settingOverride, settingError, applicationOverride);
             }
 
             foreach (PropertyInfo propertyInfo in classType.GetProperties(
@@ -112,22 +109,22 @@ namespace AppSettings
                     propertyInfo.GetValue(settings) == null ||
                     propertyInfo.GetValue(settings).Equals(GetDefault(propertyInfo.PropertyType));
 
-                ValidateSetting(propertyInfo, isDefault, settings);
+                ValidateSetting(propertyInfo, isDefault, settings, settingOverride, settingError, applicationOverride);
             }
 
             foreach (Type subClass in classType.GetNestedTypes())
             {
-                ValidateAllSettings(subClass, settings);
+                ValidateAllSettings(subClass, settings, settingOverride, settingError, applicationOverride);
             }
 
 
             // If the class has a public static/non static method called ValidateSettings, 
             // call it, the method should self validate itself
             MethodInfo validateSettingsMethod = classType.GetMethod("ValidateSettings", 
-                BindingFlags.NonPublic | BindingFlags.Static);
+                BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
 
             if (validateSettingsMethod != null)
-                validateSettingsMethod.Invoke(classType, null);
+                validateSettingsMethod.Invoke(settings, null);
         }
 
         /// <summary>
@@ -137,21 +134,21 @@ namespace AppSettings
         /// <param name="keyName"></param>
         /// <param name="propertyValue"></param>
         /// <returns></returns>
-        private static void ValidateSetting (in PropertyInfo propertyInfo, bool isDefault, object instance)
+        private static void ValidateSetting (in PropertyInfo propertyInfo, bool isDefault, object instance, 
+            ISettingOverride settingOverride, ISettingError settingError, IApplicationOverride applicationOverride)
         {
             if (propertyInfo == null)
                 throw new ArgumentNullException(nameof(propertyInfo));
 
             object propertyValue = null;
 
-            // There is an opportunity to override the settings, if the SettingOverride property
-            // has been set
-            if (SettingOverride != null)
+            // There is an opportunity to override the settings, if the settingOverride param has been set
+            if (settingOverride != null)
             {
-                if (SettingOverride.OverrideSettingValue(propertyInfo.Name, ref propertyValue))
+                if (settingOverride.OverrideSettingValue(propertyInfo.Name, ref propertyValue))
                 {
                     propertyInfo.SetValue(instance ?? propertyInfo, propertyValue);
-                    ValidateSettingValues(propertyInfo, propertyValue, false);
+                    ValidateSettingValues(propertyInfo, propertyValue, false, settingError);
 
                     return;
                 }
@@ -164,14 +161,31 @@ namespace AppSettings
                 {
                     if (attribute.AttributeType == typeof(SettingDefaultAttribute))
                     {
+                        object currentValue = attribute.ConstructorArguments[0].Value;
+
+                        if (applicationOverride != null)
+                        {
+                            object appValue = null;
+
+                            string exp = currentValue.ToString();
+                            bool expandable = exp[0] == '%' && exp[exp.Length - 1] == '%';
+
+                            if (expandable && applicationOverride.ExpandApplicationVariable(exp.Substring(1, exp.Length -2), ref appValue))
+                            {
+                                propertyInfo.SetValue(instance ?? propertyInfo, appValue);
+                                return;
+                            }
+                        }
+
                         if (attribute.ConstructorArguments[0].Value.GetType() == propertyInfo.PropertyType)
                         {
-                            object currentValue = attribute.ConstructorArguments[0].Value;
 
                             if (propertyInfo.PropertyType.FullName == "System.String")
+                            {
                                 currentValue = ExpandVariables(propertyInfo.Name, (string)currentValue);
+                            }
 
-                            ValidateSettingValues(propertyInfo, currentValue, true);
+                            ValidateSettingValues(propertyInfo, currentValue, true, settingError);
 
                             bool? isWithinRange = ValueIsWithinRange(propertyInfo, propertyInfo.GetValue(instance ?? propertyInfo));
 
@@ -184,7 +198,7 @@ namespace AppSettings
                         }
                         else
                         {
-                            ReportError(propertyInfo.Name, "Invalid Default Property Type");
+                            ReportError(propertyInfo.Name, "Invalid Default Property Type", settingError);
                         }
                     }
                 }
@@ -196,11 +210,11 @@ namespace AppSettings
             
             if (optionalSetting != null)
             {
-                ReportError(propertyInfo.Name, "Value is optional");
+                ReportError(propertyInfo.Name, "Value is optional", settingError);
 
                 if (!isDefault)
                     ValidateSettingValues(propertyInfo, 
-                        propertyInfo.GetValue(instance ?? propertyInfo, null), false);
+                        propertyInfo.GetValue(instance ?? propertyInfo, null), false, settingError);
 
                 return;
             }
@@ -213,18 +227,18 @@ namespace AppSettings
 
                 if (stringSetting == null || !stringSetting.AllowNullOrEmpty)
                 {
-                    ReportError(propertyInfo.Name, "Can not be null or empty");
+                    ReportError(propertyInfo.Name, "Can not be null or empty", settingError);
                 }
             }
 
             ValidateSettingValues(propertyInfo, 
-                propertyInfo.GetValue(instance ?? propertyInfo, null), false);
+                propertyInfo.GetValue(instance ?? propertyInfo, null), false, settingError);
         }
 
-        private static void ReportError(in string propertyName, string error)
+        private static void ReportError(in string propertyName, string error, ISettingError settingError)
         {
-            if (SettingError != null)
-                SettingError.SettingError(propertyName, $"{propertyName}: {error}");
+            if (settingError != null)
+                settingError.SettingError(propertyName, $"{propertyName}: {error}");
             else if (!error.Equals("Value is optional"))
                 throw new SettingException(propertyName, $"{propertyName}: {error}");
         }
@@ -244,19 +258,19 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidateSettingValues (in PropertyInfo propInfo, in object propValue, 
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
-            ValidateEmail(propInfo, propValue, isDefault);
-            ValidatePathExists(propInfo, propValue, isDefault);
-            ValidatePathIsValid(propInfo, propValue, isDefault);
-            ValidateUri(propInfo, propValue, isDefault);
-            ValidateValueString(propInfo, propValue, isDefault);
-            ValidateRange(propInfo, propValue, isDefault);
-            ValidateDelimited(propInfo, propValue, isDefault);
-            ValidateNVPair(propInfo, propValue, isDefault);
-            ValidateHttpResponse(propInfo, propValue, isDefault);
-            ValidateRegex(propInfo, propValue, isDefault);
-            ValidateGuid(propInfo, propValue, isDefault);
+            ValidateEmail(propInfo, propValue, isDefault, settingError);
+            ValidatePathExists(propInfo, propValue, isDefault, settingError);
+            ValidatePathIsValid(propInfo, propValue, isDefault, settingError);
+            ValidateUri(propInfo, propValue, isDefault, settingError);
+            ValidateValueString(propInfo, propValue, isDefault, settingError);
+            ValidateRange(propInfo, propValue, isDefault, settingError);
+            ValidateDelimited(propInfo, propValue, isDefault, settingError);
+            ValidateNVPair(propInfo, propValue, isDefault, settingError);
+            ValidateHttpResponse(propInfo, propValue, isDefault, settingError);
+            ValidateRegex(propInfo, propValue, isDefault, settingError);
+            ValidateGuid(propInfo, propValue, isDefault, settingError);
         }
 
         #region Attribute Validation Methods
@@ -268,7 +282,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidateEmail(in PropertyInfo propInfo, in object propValue, 
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
             SettingEmailAttribute emailSetting = (SettingEmailAttribute)propInfo.GetCustomAttribute(
                     typeof(SettingEmailAttribute));
@@ -293,7 +307,7 @@ namespace AppSettings
                         m = exp.Match(email, 0);
 
                         if (!m.Success)
-                            ReportError(propInfo.Name, $"Contains an invalid email address: {email}");
+                            ReportError(propInfo.Name, $"Contains an invalid email address: {email}", settingError);
                     }
                 }
                 else
@@ -301,7 +315,7 @@ namespace AppSettings
                     m = exp.Match(propValue.ToString(), 0);
 
                     if (!m.Success)
-                        ReportError(propInfo.Name, $"Not a valid email address: {propValue.ToString()}");
+                        ReportError(propInfo.Name, $"Not a valid email address: {propValue.ToString()}", settingError);
                 }
             }
         }
@@ -313,7 +327,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidatePathExists(in PropertyInfo propInfo, in object propValue, 
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
             bool attrExists = propInfo.CustomAttributes.Where(
                 attr => attr.AttributeType == typeof(SettingPathExistsAttribute)).FirstOrDefault() != null;
@@ -327,12 +341,12 @@ namespace AppSettings
 
                     // check the path exists
                     if (!Directory.Exists(path))
-                        ReportError(propInfo.Name, $"Path does not exist or does not have permissions: '{path}'");
+                        ReportError(propInfo.Name, $"Path does not exist or does not have permissions: '{path}'", settingError);
                 }
                 catch (Exception err)
                 {
-                    ReportError(propInfo.Name, propValue.ToString());
-                    ReportError(propInfo.Name, err.Message);
+                    ReportError(propInfo.Name, propValue.ToString(), settingError);
+                    ReportError(propInfo.Name, err.Message, settingError);
                 }
             }
         }
@@ -344,7 +358,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidatePathIsValid(in PropertyInfo propInfo, in object propValue, 
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
             bool attrExists = propInfo.CustomAttributes.Where(
                 attr => attr.AttributeType == typeof(SettingValidPathAttribute)).FirstOrDefault() != null;
@@ -354,7 +368,7 @@ namespace AppSettings
                 try
                 {
                     if (propValue.ToString().IndexOfAny(Path.GetInvalidPathChars()) > -1)
-                        ReportError(propInfo.Name, "Contains invalid characters");
+                        ReportError(propInfo.Name, "Contains invalid characters", settingError);
 
                     // last check on valid path
                     string pathValid = Path.GetFullPath(propValue.ToString());
@@ -362,7 +376,7 @@ namespace AppSettings
                 catch
                 {
                     // check the path exists
-                    ReportError(propInfo.Name, "Not a valid path");
+                    ReportError(propInfo.Name, "Not a valid path", settingError);
                 }
             }
         }
@@ -374,7 +388,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidateRange(in PropertyInfo propInfo, in object propValue, 
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
             SettingRangeAttribute attrRange = (SettingRangeAttribute)propInfo.GetCustomAttribute(
                     typeof(SettingRangeAttribute));
@@ -410,18 +424,19 @@ namespace AppSettings
                                     longValue <= Convert.ToInt32(attrRange.MaximumValue);
                             break;
                         default:
-                            ReportError(propInfo.Name, "Must be long, int, uint or float");
+                            ReportError(propInfo.Name, "Must be long, int, uint or float", settingError);
                             break;
 
                     }
 
                     if (!success)
                         ReportError(propInfo.Name, $"Value ({propValue.ToString()}) is outside of the valid range " +
-                            $"and must be between {attrRange.MinimumValue} and {attrRange.MaximumValue}");
+                            $"and must be between {attrRange.MinimumValue} and {attrRange.MaximumValue}",
+                            settingError);
                 }
                 else
                 {
-                    ReportError(propInfo.Name, "Must be decimal, int, uint or float");
+                    ReportError(propInfo.Name, "Must be decimal, int, uint or float", settingError);
                 }
             }
         }
@@ -433,7 +448,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidateUri(in PropertyInfo propInfo, in object propValue, 
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
             SettingUriAttribute uriSetting = (SettingUriAttribute)propInfo.GetCustomAttribute(
                     typeof(SettingUriAttribute));
@@ -442,14 +457,14 @@ namespace AppSettings
             {
                 if (propValue == null || String.IsNullOrEmpty(propValue.ToString()))
                 {
-                    ReportError(propInfo.Name, "Not a valid Uri");
+                    ReportError(propInfo.Name, "Not a valid Uri", settingError);
                     return;
                 }
 
                 // check it's a valid Uri
                 if (!Uri.TryCreate(propValue.ToString(), uriSetting.UriKind, out Uri uriResult))
                 {
-                    ReportError(propInfo.Name, $"Value {propValue.ToString()}, is not a valid Uri");
+                    ReportError(propInfo.Name, $"Value {propValue.ToString()}, is not a valid Uri", settingError);
                     return;
                 }
 
@@ -471,7 +486,7 @@ namespace AppSettings
                     }
                     catch
                     {
-                        ReportError(propInfo.Name, "Contains a valid Uri, however the end point can not be reached");
+                        ReportError(propInfo.Name, "Contains a valid Uri, however the end point can not be reached", settingError);
                     }
                     finally
                     {
@@ -488,7 +503,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidateValueString(in PropertyInfo propInfo, in object propValue, 
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
 
             if (propInfo.PropertyType.FullName == "System.String")
@@ -504,15 +519,15 @@ namespace AppSettings
                         return;
 
                     if (!stringSetting.AllowNullOrEmpty && String.IsNullOrEmpty(propVal))
-                        ReportError(propInfo.Name, "Not allowed to be null or empty");
+                        ReportError(propInfo.Name, "Not allowed to be null or empty", settingError);
 
                     if (propVal.Length < stringSetting.MinLength)
                        ReportError(propInfo.Name, "Minimum length should be at " +
-                            $"least {stringSetting.MinLength} characters long, is currently {propVal.Length} characters");
+                            $"least {stringSetting.MinLength} characters long, is currently {propVal.Length} characters", settingError);
 
                     if (propVal.Length > stringSetting.MaxLength)
                         ReportError(propInfo.Name, "Maximum length can not be longer than " +
-                            $"{stringSetting.MaxLength} characters long, is currently {propVal.Length} characters");
+                            $"{stringSetting.MaxLength} characters long, is currently {propVal.Length} characters", settingError);
                 }
             }
         }
@@ -524,7 +539,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidateDelimited(in PropertyInfo propInfo, in object propValue,
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
             if (propInfo.PropertyType.FullName == "System.String")
             {
@@ -538,10 +553,10 @@ namespace AppSettings
                     string[] items = propVal.Split(new char[] { delimitedSetting.Delimiter }, StringSplitOptions.RemoveEmptyEntries);
 
                     if (items.Length < delimitedSetting.MinimumItems)
-                        ReportError(propInfo.Name, $"Delimited string must contain at least {delimitedSetting.MinimumItems} items");
+                        ReportError(propInfo.Name, $"Delimited string must contain at least {delimitedSetting.MinimumItems} items", settingError);
 
                     if (items.Length > delimitedSetting.MaximumItems)
-                        ReportError(propInfo.Name, $"Delimited string can only contain {delimitedSetting.MaximumItems} items");
+                        ReportError(propInfo.Name, $"Delimited string can only contain {delimitedSetting.MaximumItems} items", settingError);
                 }
             }
         }
@@ -553,7 +568,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidateNVPair(in PropertyInfo propInfo, in object propValue,
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
             if (propInfo.PropertyType.FullName == "System.String")
             {
@@ -571,16 +586,16 @@ namespace AppSettings
                         string[] parts = s.Split('=');
 
                         if (parts.Length != 2)
-                            ReportError(propInfo.Name, $"'{s}' is not valid for a name value part");
+                            ReportError(propInfo.Name, $"'{s}' is not valid for a name value part", settingError);
 
                         nameValueCollection.Add(parts[0], parts[1]);
                     }
 
                     if (nameValueCollection.Count < nvpSetting.MinimumItems)
-                        ReportError(propInfo.Name, $"Name value pair string must contain at least {nvpSetting.MinimumItems} items");
+                        ReportError(propInfo.Name, $"Name value pair string must contain at least {nvpSetting.MinimumItems} items", settingError);
 
                     if (nameValueCollection.Count > nvpSetting.MaximumItems)
-                        ReportError(propInfo.Name, $"Name value pair string can only contain {nvpSetting.MaximumItems} items");
+                        ReportError(propInfo.Name, $"Name value pair string can only contain {nvpSetting.MaximumItems} items", settingError);
                 }
             }
         }
@@ -592,7 +607,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidateHttpResponse(in PropertyInfo propInfo, in object propValue,
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
             if (propInfo.PropertyType.FullName == "System.Int32")
             {
@@ -603,7 +618,7 @@ namespace AppSettings
                 {
                     if (!httpResponseSetting.ValidateResponseCode(Convert.ToInt32(propValue)))
                         ReportError(propInfo.Name, $"{propValue.ToString()} is not valid for {propInfo.Name} " +
-                            $"expecting type {httpResponseSetting.ResponseType.ToString()}");
+                            $"expecting type {httpResponseSetting.ResponseType.ToString()}", settingError);
                 }
             }
         }
@@ -615,7 +630,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidateRegex(in PropertyInfo propInfo, in object propValue,
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
             if (propInfo.PropertyType.FullName == "System.String")
             {
@@ -629,7 +644,7 @@ namespace AppSettings
                     if (!match.Success)
                     {
                         ReportError(propInfo.Name, $"{propValue.ToString()} is not valid for {propInfo.Name} " +
-                            $"expecting regex compatible to {regexSetting.Regex}");
+                            $"expecting regex compatible to {regexSetting.Regex}", settingError);
                     }
                 }
             }
@@ -642,7 +657,7 @@ namespace AppSettings
         /// <param name="propValue"></param>
         /// <param name="isDefault"></param>
         private static void ValidateGuid(in PropertyInfo propInfo, in object propValue,
-            in bool isDefault)
+            in bool isDefault, ISettingError settingError)
         {
             if (propInfo.PropertyType.FullName == "System.String")
             {
@@ -654,7 +669,7 @@ namespace AppSettings
                     if (!Guid.TryParse(propValue.ToString(), out Guid guid))
                     {
                         ReportError(propInfo.Name, $"{propValue.ToString()} is not valid for {propInfo.Name} " +
-                            "expecting Guid value");
+                            "expecting Guid value", settingError);
                     }
                 }
             }

@@ -11,46 +11,29 @@
  *
  *  The Original Code was created by Simon Carter (s1cart3r@gmail.com)
  *
- *  Copyright (c) 2018 - 2019 Simon Carter.  All Rights Reserved.
+ *  Copyright (c) 2018 - 2021 Simon Carter.  All Rights Reserved.
  *
  *  Product:  AppSettings
  *  
- *  File: SettingException.cs
+ *  File: IApplicationOverride.cs
  *
- *  Purpose:  Exception raised for invalid settings
+ *  Purpose:  Provides an interface which allows the application to override settings by 
+ *            providing custom application values
  *
  *  Date        Name                Reason
- *  28/11/2018  Simon Carter        Initially Created
+ *  26/06/2021  Simon Carter        Initially Created
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace AppSettings
 {
-    public class SettingException : Exception
+    public interface IApplicationOverride
     {
-        #region Constructors
-
-        public SettingException()
-        {
-
-        }
-
-        public SettingException(in string propertyName, in string message)
-            : base (message)
-        {
-            if (String.IsNullOrEmpty(propertyName))
-                throw new ArgumentNullException(nameof(propertyName));
-
-            PropertyName = propertyName;
-        }
-
-        #endregion Constructors
-
-        #region Properties
-
-        public string PropertyName { get; private set; }
-
-        #endregion Properties
+        bool ExpandApplicationVariable(string variableName, ref object value);
     }
 }

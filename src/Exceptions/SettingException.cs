@@ -15,9 +15,9 @@
  *
  *  Product:  AppSettings
  *  
- *  File: SettingUriAttribute.cs
+ *  File: SettingException.cs
  *
- *  Purpose:  Ensures the string is a valid Uri
+ *  Purpose:  Exception raised for invalid settings
  *
  *  Date        Name                Reason
  *  28/11/2018  Simon Carter        Initially Created
@@ -27,35 +27,29 @@ using System;
 
 namespace AppSettings
 {
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public sealed class SettingUriAttribute : Attribute
+    public class SettingException : Exception
     {
         #region Constructors
 
-        public SettingUriAttribute()
-            : this (false)
+        public SettingException()
         {
 
         }
 
-        public SettingUriAttribute(bool validateEndPoint)
-            : this (validateEndPoint, UriKind.Absolute)
+        public SettingException(in string propertyName, in string message)
+            : base (message)
         {
-        }
+            if (String.IsNullOrEmpty(propertyName))
+                throw new ArgumentNullException(nameof(propertyName));
 
-        public SettingUriAttribute(bool validateEndPoint, UriKind uriKind)
-        {
-            ValidateEndPoint = validateEndPoint;
-            UriKind = uriKind;
+            PropertyName = propertyName;
         }
 
         #endregion Constructors
 
         #region Properties
 
-        public bool ValidateEndPoint { get; private set; }
-
-        public UriKind UriKind { get; private set; }
+        public string PropertyName { get; }
 
         #endregion Properties
     }

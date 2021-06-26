@@ -15,55 +15,41 @@
  *
  *  Product:  AppSettings
  *  
- *  File: SettingStringAttribute.cs
+ *  File: SettingRegexAttribute.cs
  *
- *  Purpose:  Options for string properties
+ *  Purpose:  Validates that the string against user supplied regex
  *
  *  Date        Name                Reason
- *  28/11/2018  Simon Carter        Initially Created
+ *  01/12/2018  Simon Carter        Initially Created
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 using System;
+using System.Linq;
 
 namespace AppSettings
 {
+    /// <summary>
+    /// Validates that the setting against a regex
+    /// </summary>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public sealed class SettingStringAttribute : Attribute
+    public sealed class SettingRegexAttribute : Attribute
     {
         #region Constructors
 
-        public SettingStringAttribute(uint minimumLength, uint maximumLength)
-            : this (false, minimumLength, maximumLength)
+        public SettingRegexAttribute(string regex)
         {
-        }
+            if (String.IsNullOrEmpty(regex))
+                throw new ArgumentNullException(nameof(regex), "You must specify a regex value");
 
-        public SettingStringAttribute(bool allowNullOrEmpty)
-            : this (allowNullOrEmpty, 1, 500)
-        {
-
-        }
-
-        public SettingStringAttribute(bool allowNullOrEmpty, uint minimumLength, uint maximumLength)
-        {
-            if (maximumLength < minimumLength)
-                throw new ArgumentOutOfRangeException(nameof(maximumLength), 
-                    $"{nameof(maximumLength)} can not be less than {nameof(minimumLength)}");
-
-            AllowNullOrEmpty = allowNullOrEmpty;
-            MinLength = minimumLength;
-            MaxLength = maximumLength;
+            Regex = regex;
         }
 
         #endregion Constructors
 
-        #region Properties
+        #region Public Properties
 
-        public uint MinLength { get; private set; }
+        public string Regex { get; }
 
-        public uint MaxLength { get; private set; }
-
-        public bool AllowNullOrEmpty { get; private set; }
-
-        #endregion Properties
+        #endregion Public Properties
     }
 }
