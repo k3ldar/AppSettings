@@ -103,7 +103,7 @@ namespace AppSettings.Tests
 
             test = ValidateSettings<DefaultTestStringAppPath>.Validate(test);
 
-            Assert.IsTrue(test.Value.EndsWith("microsoft.testplatform.testhost\\15.9.0\\lib\\netstandard1.5"));
+            Assert.IsTrue(test.Value.EndsWith("AppSettings\\Test\\bin\\Debug\\net5.0"));
         }
 
         [TestMethod]
