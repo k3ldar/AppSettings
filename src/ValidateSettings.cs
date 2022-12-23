@@ -74,17 +74,12 @@ namespace AppSettings
         {
             return Validate(settings, null, null);
         }
-
-        #endregion Public Static Methods
-
-        #region Private Static Methods
-
         /// <summary>
         /// Finds all validate-able settings in a class/nested class
         /// </summary>
         /// <param name="path"></param>
         /// <param name="classType"></param>
-        private static void ValidateAllSettings(in Type classType, in T settings, 
+        public static void ValidateAllSettings(in Type classType, in object settings, 
             ISettingOverride settingOverride, ISettingError settingError, IApplicationOverride applicationOverride)
         {
             if (classType == null)
@@ -126,6 +121,11 @@ namespace AppSettings
             if (validateSettingsMethod != null)
                 validateSettingsMethod.Invoke(settings, null);
         }
+
+        #endregion Public Static Methods
+
+        #region Private Static Methods
+
 
         /// <summary>
         /// Retrieves the value for a property, and performs validation
